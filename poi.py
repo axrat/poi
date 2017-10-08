@@ -1,19 +1,42 @@
 #!/usr/bin/env python3
 # coding:utf-8
 
+import sys
 import os
+import json
 import pprint
 import requests
 import sqlite3
+import argparse
 
 
-def main():
-    print("HelloWorld!")
+def option():
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('integers', metavar='N', type=int, nargs='+',
+                        help='an integer for the accumulator')
+    parser.add_argument('--sum', dest='accumulate', action='store_const',
+                        const=sum, default=max,
+                        help='sum the integers (default: find the max)')
+
+    args = parser.parse_args()
+    print(args.accumulate(args.integers))
+
+
+def writeFile():
+    f = open('text.txt', 'w')  # 書き込みモードで開く
+    f.write("hello")  # 引数の文字列をファイルに書き込む
+    f.close()  # ファイルを閉じる
 
 
 def githubapi():
     response = requests.get('https://api.github.com/users/onoie')
     pprint.pprint(response.json())
+
+
+def loadJson():
+    print("loadJson")
+    # 変数1 = open(‘読み込むJSONファイルのパス’, ‘r’)
+    # 変数2 = json.load(変数1)
 
 
 def sl(dbpath):
@@ -45,7 +68,38 @@ def sl(dbpath):
     conn.close()
 
 
+def sl2(dbpath):
+    from sqlite3 import dbapi2 as sqlite
+    dbname = "mysqlite.db"  # DBファイルの名前
+    tablename = "personae"  # テーブルの名前
+    con = sqlite.connect(dbname)
+    # テーブルの存在確認
+    cur = con.execute("SELECT * FROM sqlite_master WHERE type='table' and name='%s'" % tablename)
+    if cur.fetchone() == None:  # 存在してないので作る
+        con.execute("CREATE TABLE %s(id INTEGER, name TEXT, hp INTEGER, mp INTEGER)" % tablename)
+        con.commit()
+    con.close()
+
+
+def args():
+    argv = sys.argv
+    argc = len(argv)
+    if argc == 1:
+        print('Usage: # python %s filename' % argv[0])
+        quit()
+
+    print('Command:%s' % argv[1])
+
+
+def main():
+    print("HelloWorld!")
+    args()
+    # dbpath = os.path.dirname(os.path.abspath(__file__)) + "/mysqlite.db"
+    ## writeFile()
+    # githubapi()
+    # sl(dbpath)
+    # sl2(dbpath)
+
+
 if __name__ == '__main__':
     main()
-    githubapi()
-    sl(os.path.dirname(os.path.abspath(__file__)) + "/mysqlite.db")
