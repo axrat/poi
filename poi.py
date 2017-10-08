@@ -22,10 +22,10 @@ def option():
     print(args.accumulate(args.integers))
 
 
-def writeFile():
-    f = open('text.txt', 'w')  # 書き込みモードで開く
-    f.write("hello")  # 引数の文字列をファイルに書き込む
-    f.close()  # ファイルを閉じる
+def touch():
+    f = open('ok', 'w')
+    f.write("hello")
+    f.close()
 
 
 def githubapi():
@@ -75,30 +75,32 @@ def sl2(dbpath):
     con = sqlite.connect(dbname)
     # テーブルの存在確認
     cur = con.execute("SELECT * FROM sqlite_master WHERE type='table' and name='%s'" % tablename)
-    if cur.fetchone() == None:  # 存在してないので作る
+    if cur.fetchone() is None:  # 存在してないので作る
         con.execute("CREATE TABLE %s(id INTEGER, name TEXT, hp INTEGER, mp INTEGER)" % tablename)
         con.commit()
     con.close()
 
 
-def args():
+def main():
     argv = sys.argv
     argc = len(argv)
     if argc == 1:
-        print('Usage: # python %s filename' % argv[0])
+        print('Require [Command]')
         quit()
-
-    print('Command:%s' % argv[1])
-
-
-def main():
-    print("HelloWorld!")
-    args()
-    # dbpath = os.path.dirname(os.path.abspath(__file__)) + "/mysqlite.db"
-    ## writeFile()
-    # githubapi()
-    # sl(dbpath)
-    # sl2(dbpath)
+    # print('Command:%s' % argv[1])
+    p1 = argv[1]
+    if p1 == "hello":
+        print("HelloWorld!")
+    elif p1 == "githubapi":
+        githubapi()
+    elif p1 == "touch":
+        touch()
+    elif p1 == "sqlite":
+        dbpath = os.path.dirname(os.path.abspath(__file__)) + "/mysqlite.db"
+        # sl(dbpath)
+        sl2(dbpath)
+    else:
+        print('Unknown Command:%s' % p1)
 
 
 if __name__ == '__main__':
