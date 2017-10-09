@@ -16,7 +16,7 @@ def readme():
         '''
           {temp}
           Require [Command]
-          poi hello/touch/test/githubapi
+          poi hello/touch/test/githubapi/bitbucketapi
         ''').format(temp="README").strip()
     print(string)
 
@@ -40,9 +40,18 @@ def touch():
 
 
 def githubapi():
-    response = requests.get('https://api.github.com/users/onoie')
-    pprint.pprint(response.json())
+    print("GithubAPI")
+    github_token = os.environ["GITHUB_TOKEN"]
+    print("Token:%s" % github_token)
+    #response = requests.get('https://api.github.com/users/onoie')
+    #pprint.pprint(response.json())
 
+
+def bitbucketapi():
+    print("BitbucketAPI")
+    bitbucket_user = os.environ["BITBUCKET_USER"]
+    bitbucket_pass = os.environ["BITBUCKET_PASS"]
+    print("User:%s,Pass:%s" % (bitbucket_user, bitbucket_pass))
 
 def loadJson():
     print("loadJson")
@@ -91,8 +100,10 @@ def sl2(dbpath):
         con.commit()
     con.close()
 
+
 def test():
     print("TestFunction")
+
 
 def main():
     argv = sys.argv
@@ -110,6 +121,8 @@ def main():
         test()
     elif p1 == "githubapi":
         githubapi()
+    elif p1 == "bitbucketapi":
+        bitbucketapi()
     elif p1 == "sqlite":
         dbpath = os.path.dirname(os.path.abspath(__file__)) + "/mysqlite.db"
         # sl(dbpath)
