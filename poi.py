@@ -34,24 +34,31 @@ def option():
 
 
 def touch():
-    f = open('ok', 'w')
+    f = open(parent+'/ok', 'w')
     f.write("hello")
     f.close()
 
 
-def githubapi():
+def githubapi(github_user = os.environ["GITHUB_USER"],
+        github_token = os.environ["GITHUB_TOKEN"]):
     print("GithubAPI")
-    github_token = os.environ["GITHUB_TOKEN"]
-    print("Token:%s" % github_token)
-    #response = requests.get('https://api.github.com/users/onoie')
-    #pprint.pprint(response.json())
+    print("User:%s,Token:%s" % (github_user,github_token))
+    response = requests.get('https://api.github.com/users/'+github_user)
+    pprint.pprint(response.json())
+    data = response.json()
+    with open(parent+'/RESPONSE_GITHUB', 'w') as f:
+        json.dump(data, f)
 
 
-def bitbucketapi():
+def bitbucketapi(bitbucket_user = os.environ["BITBUCKET_USER"],
+        bitbucket_pass = os.environ["BITBUCKET_PASS"]):
     print("BitbucketAPI")
-    bitbucket_user = os.environ["BITBUCKET_USER"]
-    bitbucket_pass = os.environ["BITBUCKET_PASS"]
     print("User:%s,Pass:%s" % (bitbucket_user, bitbucket_pass))
+    response = requests.get('https://api.bitbucket.org/2.0/repositories/'+bitbucket_user)
+    pprint.pprint(response.json())
+    data = response.json()
+    with open(parent+'/RESPONSE_BITBUCKET', 'w') as f:
+        json.dump(data, f)
 
 def loadJson():
     print("loadJson")
@@ -124,12 +131,13 @@ def main():
     elif p1 == "bitbucketapi":
         bitbucketapi()
     elif p1 == "sqlite":
-        dbpath = os.path.dirname(os.path.abspath(__file__)) + "/mysqlite.db"
         # sl(dbpath)
-        sl2(dbpath)
+        sl2(db_path)
     else:
         print('Unknown Command:%s' % p1)
 
 
 if __name__ == '__main__':
+    parent = os.path.dirname(os.readlink(os.path.abspath(__file__)))
+    db_path = parent + "/mysqlite.db"
     main()
