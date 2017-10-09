@@ -101,6 +101,14 @@ def sl2(dbpath):
         con.commit()
     con.close()
 
+def createJson():
+    dict = {
+        "name": "aaa",
+        "age": 30
+    }
+    jsonstring = json.dumps(dict, indent=2)
+    print(jsonstring)
+
 
 def test():
     print("TestFunction")
