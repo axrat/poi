@@ -43,7 +43,7 @@ def githubapi(github_user = os.environ["GITHUB_USER"],
         github_token = os.environ["GITHUB_TOKEN"]):
     print("GithubAPI")
     print("User:%s,Token:%s" % (github_user,github_token))
-    response = requests.get('https://api.github.com/users/'+github_user)
+    response = requests.get('https://api.github.com/users/'+github_user+'/repos')
     pprint.pprint(response.json())
     data = response.json()
     with open(parent+'/RESPONSE_GITHUB', 'w') as f:
@@ -59,12 +59,6 @@ def bitbucketapi(bitbucket_user = os.environ["BITBUCKET_USER"],
     data = response.json()
     with open(parent+'/RESPONSE_BITBUCKET', 'w') as f:
         json.dump(data, f)
-
-def loadJson():
-    print("loadJson")
-    # 変数1 = open(‘読み込むJSONファイルのパス’, ‘r’)
-    # 変数2 = json.load(変数1)
-
 
 def sl(dbpath):
     conn = sqlite3.connect(dbpath)
@@ -110,6 +104,10 @@ def sl2(dbpath):
 
 def test():
     print("TestFunction")
+    f = open(parent+'/RESPONSE_GITHUB', 'r')
+    json_dict = json.load(f)
+    jsonstring = json.dumps(json_dict, indent=2)
+    print(jsonstring)
 
 
 def main():
