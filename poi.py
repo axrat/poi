@@ -8,6 +8,17 @@ import pprint
 import requests
 import sqlite3
 import argparse
+import textwrap
+
+
+def readme():
+    string = textwrap.dedent(
+        '''
+          {temp}
+          Require [Command]
+          poi hello/touch/test/githubapi
+        ''').format(temp="README").strip()
+    print(string)
 
 
 def option():
@@ -80,21 +91,25 @@ def sl2(dbpath):
         con.commit()
     con.close()
 
+def test():
+    print("TestFunction")
 
 def main():
     argv = sys.argv
     argc = len(argv)
     if argc == 1:
-        print('Require [Command]')
+        readme()
         quit()
     # print('Command:%s' % argv[1])
     p1 = argv[1]
     if p1 == "hello":
         print("HelloWorld!")
-    elif p1 == "githubapi":
-        githubapi()
     elif p1 == "touch":
         touch()
+    elif p1 == "test":
+        test()
+    elif p1 == "githubapi":
+        githubapi()
     elif p1 == "sqlite":
         dbpath = os.path.dirname(os.path.abspath(__file__)) + "/mysqlite.db"
         # sl(dbpath)
