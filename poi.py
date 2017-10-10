@@ -9,7 +9,8 @@ import requests
 import sqlite3
 import argparse
 import textwrap
-
+import collections as cl
+from datetime import datetime
 
 def readme():
     string = textwrap.dedent(
@@ -60,54 +61,54 @@ def bitbucketapi(bitbucket_user = os.environ["BITBUCKET_USER"],
     with open(parent+'/RESPONSE_BITBUCKET', 'w') as f:
         json.dump(data, f)
 
+
 def sl(dbpath):
-    conn = sqlite3.connect(dbpath)
-    c = conn.cursor()
-    # executeメソッドでSQL文を実行する
-    create_table = '''create table users (id int, name varchar(64),age int, gender varchar(32))'''
-    c.execute(create_table)
-    # SQL文に値をセットする場合は，Pythonのformatメソッドなどは使わずに，
-    # セットしたい場所に?を記述し，executeメソッドの第2引数に?に当てはめる値を
-    # タプルで渡す．
-    sql = 'insert into users (id, name, age, gender) values (?,?,?,?)'
-    user = (1, 'Taro', 20, 'male')
-    c.execute(sql, user)
-    # 一度に複数のSQL文を実行したいときは，タプルのリストを作成した上で
-    # executemanyメソッドを実行する
-    insert_sql = 'insert into users (id, name, age, gender) values (?,?,?,?)'
-    users = [
-        (2, 'Shota', 54, 'male'),
-        (3, 'Nana', 40, 'female'),
-        (4, 'Tooru', 78, 'male'),
-        (5, 'Saki', 31, 'female')
-    ]
+    con = sqlite3.connect(dbpath)
+    initializeTable(con,"stack","create table stack (id int, val varchar(255))")
+    c = con.cursor()
+    insert_sql = 'insert into stack (id,val) values (?,?)'
+    users = [(datetime.now().strftime("%Y%m%d%H%M%S"),datetime.now()),]
     c.executemany(insert_sql, users)
-    conn.commit()
-    select_sql = 'select * from users'
+    con.commit()
+    select_sql = 'select * from stack'
     for row in c.execute(select_sql):
         print(row)
-    conn.close()
-
-
-def sl2(dbpath):
-    from sqlite3 import dbapi2 as sqlite
-    dbname = "mysqlite.db"  # DBファイルの名前
-    tablename = "personae"  # テーブルの名前
-    con = sqlite.connect(dbname)
-    # テーブルの存在確認
-    cur = con.execute("SELECT * FROM sqlite_master WHERE type='table' and name='%s'" % tablename)
-    if cur.fetchone() is None:  # 存在してないので作る
-        con.execute("CREATE TABLE %s(id INTEGER, name TEXT, hp INTEGER, mp INTEGER)" % tablename)
-        con.commit()
     con.close()
 
-def createJson():
-    dict = {
-        "name": "aaa",
-        "age": 30
-    }
-    jsonstring = json.dumps(dict, indent=2)
-    print(jsonstring)
+
+def initializeTable(con,table,create):
+    cur = con.execute("SELECT * FROM sqlite_master WHERE type='table' and name='%s'" % table)
+    if cur.fetchone() is None:
+        print("NotFoundTable:%s" % table)
+        con.execute(create)
+        con.commit()
+    # else:
+    #     print("FoundTable:%s" % table)
+
+def jsonLoad(json_path):
+    f = open(json_path, 'r')
+    json_data = json.load(f)  # JSON形式で読み込む
+    name_list = ["honoka", "eri", "kotori", "umi", "rin", "maki", "nozomi", "hanayo", "niko"]
+    for name in name_list:
+        print("{0:6s} 身長：{1}cm BWH: ".format(name, json_data[name]["height"]), end="\t")
+        for i in range(len(json_data[name]["BWH"])):
+            print("{}".format(json_data[name]["BWH"][i]), end="\t")
+        print()
+
+def jsonWrite(json_path):
+    name_list = ["honoka", "eri", "kotori", "umi", "rin", "maki", "nozomi", "hanayo", "niko"]
+    height = [157, 162, 159, 159, 155, 161, 159, 156, 154]
+    BWH = [[78, 58, 82], [88, 60, 84], [80, 58, 80], [76, 58, 80],
+           [75, 59, 80], [78, 56, 83], [90, 60, 82], [82, 60, 83], [74, 57, 79]]
+    ys = cl.OrderedDict()
+    for i in range(len(name_list)):
+        data = cl.OrderedDict()
+        data["BWH"] = BWH[i]
+        data["height"] = height[i]
+        ys[name_list[i]] = data
+    # print("{}".format(json.dumps(ys,indent=4)))
+    fw = open(json_path, 'w')
+    json.dump(ys, fw, indent=4)
 
 
 def test():
@@ -128,22 +129,31 @@ def main():
     p1 = argv[1]
     if p1 == "hello":
         print("HelloWorld!")
-    elif p1 == "touch":
-        touch()
     elif p1 == "test":
         test()
+    elif p1 == "touch":
+        touch()
     elif p1 == "githubapi":
         githubapi()
     elif p1 == "bitbucketapi":
         bitbucketapi()
     elif p1 == "sqlite":
-        # sl(dbpath)
-        sl2(db_path)
+        sl(parent + "/mysqlite.db")
+    elif p1 == "json":
+        if argc == 2:
+            print("require param load/write")
+            exit()
+        p2 = argv[2]
+        if p2 == "write":
+            jsonWrite(parent + "/myu_s.json")
+        elif p2 == "load":
+            jsonLoad(parent + "/myu_s.json")
+        else:
+            print("UnknownParam:%s" % p2)
     else:
-        print('Unknown Command:%s' % p1)
+        print('UnknownCommand:%s' % p1)
 
 
 if __name__ == '__main__':
     parent = os.path.dirname(os.readlink(os.path.abspath(__file__)))
-    db_path = parent + "/mysqlite.db"
     main()
