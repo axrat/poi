@@ -1,6 +1,8 @@
 mysqlite.db
+out.json
 RESPONSE_GITHUB
 RESPONSE_BITBUCKET
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

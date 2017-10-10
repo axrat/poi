@@ -17,7 +17,6 @@ def readme():
         '''
           {temp}
           Require [Command]
-          poi hello/touch/test/githubapi/bitbucketapi
         ''').format(temp="README").strip()
     print(string)
 
@@ -62,18 +61,43 @@ def bitbucketapi(bitbucket_user = os.environ["BITBUCKET_USER"],
         json.dump(data, f)
 
 
-def sl(dbpath):
+def slinit(dbpath):
     con = sqlite3.connect(dbpath)
-    initializeTable(con,"stack","create table stack (id int, val varchar(255))")
+    initializeTable(con, "stack", "create table stack (id int, val varchar(255))")
+    return con
+
+
+def slpush(con,val):
     c = con.cursor()
-    insert_sql = 'insert into stack (id,val) values (?,?)'
-    users = [(datetime.now().strftime("%Y%m%d%H%M%S"),datetime.now()),]
-    c.executemany(insert_sql, users)
+    sql = 'insert into stack (id,val) values (?,?)'
+    query = [(datetime.now().strftime("%Y%m%d%H%M%S"),val),]
+    c.executemany(sql, query)
     con.commit()
+    print("push complete")
+
+
+def slpop(con):
+    c = con.cursor()
     select_sql = 'select * from stack'
     for row in c.execute(select_sql):
         print(row)
     con.close()
+
+
+def slout(con,json_path):
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+    cur.execute("select * from stack")
+    ys = cl.OrderedDict()
+    for row in cur:
+        # print(str(row["id"]) + "," + row["val"])
+        data = cl.OrderedDict()
+        ys[str(row["id"])] = data
+        data["val"] = row["val"]
+    cur.close()
+    fw = open(json_path, 'w')
+    json.dump(ys, fw, indent=2)
+    print("out complete")
 
 
 def initializeTable(con,table,create):
@@ -85,6 +109,7 @@ def initializeTable(con,table,create):
     # else:
     #     print("FoundTable:%s" % table)
 
+
 def jsonLoad(json_path):
     f = open(json_path, 'r')
     json_data = json.load(f)  # JSON形式で読み込む
@@ -95,11 +120,11 @@ def jsonLoad(json_path):
             print("{}".format(json_data[name]["BWH"][i]), end="\t")
         print()
 
+
 def jsonWrite(json_path):
     name_list = ["honoka", "eri", "kotori", "umi", "rin", "maki", "nozomi", "hanayo", "niko"]
     height = [157, 162, 159, 159, 155, 161, 159, 156, 154]
-    BWH = [[78, 58, 82], [88, 60, 84], [80, 58, 80], [76, 58, 80],
-           [75, 59, 80], [78, 56, 83], [90, 60, 82], [82, 60, 83], [74, 57, 79]]
+    BWH = [[78, 58, 82], [88, 60, 84], [80, 58, 80], [76, 58, 80],[75, 59, 80], [78, 56, 83], [90, 60, 82], [82, 60, 83], [74, 57, 79]]
     ys = cl.OrderedDict()
     for i in range(len(name_list)):
         data = cl.OrderedDict()
@@ -108,7 +133,7 @@ def jsonWrite(json_path):
         ys[name_list[i]] = data
     # print("{}".format(json.dumps(ys,indent=4)))
     fw = open(json_path, 'w')
-    json.dump(ys, fw, indent=4)
+    json.dump(ys, fw, indent=2)
 
 
 def test():
@@ -137,8 +162,15 @@ def main():
         githubapi()
     elif p1 == "bitbucketapi":
         bitbucketapi()
-    elif p1 == "sqlite":
-        sl(parent + "/mysqlite.db")
+    elif p1 == "push":
+        if argc == 2:
+            print("require push param")
+            exit()
+        slpush(slinit(dbpath),argv[2])
+    elif p1 == "pop":
+        slpop(slinit(dbpath))
+    elif p1 == "out":
+        slout(slinit(dbpath),parent + "/out.json")
     elif p1 == "json":
         if argc == 2:
             print("require param load/write")
@@ -156,4 +188,5 @@ def main():
 
 if __name__ == '__main__':
     parent = os.path.dirname(os.readlink(os.path.abspath(__file__)))
+    dbpath = parent + "/mysqlite.db"
     main()
