@@ -84,6 +84,13 @@ def slpop(con):
     con.close()
 
 
+def slclear(con):
+    c = con.cursor()
+    c.execute('DELETE FROM stack')
+    con.commit()
+    con.close()
+
+
 def slout(con,json_path):
     con.row_factory = sqlite3.Row
     cur = con.cursor()
@@ -171,6 +178,8 @@ def main():
         slpop(slinit(dbpath))
     elif p1 == "out":
         slout(slinit(dbpath),parent + "/out.json")
+    elif p1 == "clear":
+        slclear(slinit(dbpath))
     elif p1 == "json":
         if argc == 2:
             print("require param load/write")
