@@ -12,6 +12,7 @@ import textwrap
 import collections as cl
 from datetime import datetime
 
+
 def readme():
     string = textwrap.dedent(
         '''
@@ -34,30 +35,30 @@ def option():
 
 
 def touch():
-    f = open(parent+'/ok', 'w')
+    f = open(parent + '/ok', 'w')
     f.write("hello")
     f.close()
 
 
-def githubapi(github_user = os.environ["GITHUB_USER"],
-        github_token = os.environ["GITHUB_TOKEN"]):
+def githubapi(github_user=os.environ["GITHUB_USER"],
+              github_token=os.environ["GITHUB_TOKEN"]):
     print("GithubAPI")
-    print("User:%s,Token:%s" % (github_user,github_token))
-    response = requests.get('https://api.github.com/users/'+github_user+'/repos')
+    print("User:%s,Token:%s" % (github_user, github_token))
+    response = requests.get('https://api.github.com/users/' + github_user + '/repos')
     pprint.pprint(response.json())
     data = response.json()
-    with open(parent+'/RESPONSE_GITHUB', 'w') as f:
+    with open(parent + '/RESPONSE_GITHUB', 'w') as f:
         json.dump(data, f)
 
 
-def bitbucketapi(bitbucket_user = os.environ["BITBUCKET_USER"],
-        bitbucket_pass = os.environ["BITBUCKET_PASS"]):
+def bitbucketapi(bitbucket_user=os.environ["BITBUCKET_USER"],
+                 bitbucket_pass=os.environ["BITBUCKET_PASS"]):
     print("BitbucketAPI")
     print("User:%s,Pass:%s" % (bitbucket_user, bitbucket_pass))
-    response = requests.get('https://api.bitbucket.org/2.0/repositories/'+bitbucket_user)
+    response = requests.get('https://api.bitbucket.org/2.0/repositories/' + bitbucket_user)
     pprint.pprint(response.json())
     data = response.json()
-    with open(parent+'/RESPONSE_BITBUCKET', 'w') as f:
+    with open(parent + '/RESPONSE_BITBUCKET', 'w') as f:
         json.dump(data, f)
 
 
@@ -67,10 +68,10 @@ def slinit(dbpath):
     return con
 
 
-def slpush(con,val):
+def slpush(con, val):
     c = con.cursor()
     sql = 'insert into stack (id,val) values (?,?)'
-    query = [(datetime.now().strftime("%Y%m%d%H%M%S"),val),]
+    query = [(datetime.now().strftime("%Y%m%d%H%M%S"), val), ]
     c.executemany(sql, query)
     con.commit()
     print("push complete")
@@ -84,6 +85,14 @@ def slpop(con):
     con.close()
 
 
+def sldel(con, id):
+    c = con.cursor()
+    c.execute('DELETE FROM stack WHERE id = %s' % id)
+    con.commit()
+    con.close()
+    print("delete complete")
+
+
 def slclear(con):
     c = con.cursor()
     c.execute('DELETE FROM stack')
@@ -91,7 +100,7 @@ def slclear(con):
     con.close()
 
 
-def slout(con,json_path):
+def slout(con, json_path):
     con.row_factory = sqlite3.Row
     cur = con.cursor()
     cur.execute("select * from stack")
@@ -107,14 +116,14 @@ def slout(con,json_path):
     print("out complete")
 
 
-def initializeTable(con,table,create):
+def initializeTable(con, table, create):
     cur = con.execute("SELECT * FROM sqlite_master WHERE type='table' and name='%s'" % table)
     if cur.fetchone() is None:
         print("NotFoundTable:%s" % table)
         con.execute(create)
         con.commit()
-    # else:
-    #     print("FoundTable:%s" % table)
+        # else:
+        #     print("FoundTable:%s" % table)
 
 
 def jsonLoad(json_path):
@@ -131,7 +140,8 @@ def jsonLoad(json_path):
 def jsonWrite(json_path):
     name_list = ["honoka", "eri", "kotori", "umi", "rin", "maki", "nozomi", "hanayo", "niko"]
     height = [157, 162, 159, 159, 155, 161, 159, 156, 154]
-    BWH = [[78, 58, 82], [88, 60, 84], [80, 58, 80], [76, 58, 80],[75, 59, 80], [78, 56, 83], [90, 60, 82], [82, 60, 83], [74, 57, 79]]
+    BWH = [[78, 58, 82], [88, 60, 84], [80, 58, 80], [76, 58, 80], [75, 59, 80], [78, 56, 83], [90, 60, 82],
+           [82, 60, 83], [74, 57, 79]]
     ys = cl.OrderedDict()
     for i in range(len(name_list)):
         data = cl.OrderedDict()
@@ -145,7 +155,7 @@ def jsonWrite(json_path):
 
 def test():
     print("TestFunction")
-    f = open(parent+'/RESPONSE_GITHUB', 'r')
+    f = open(parent + '/RESPONSE_GITHUB', 'r')
     json_dict = json.load(f)
     jsonstring = json.dumps(json_dict, indent=2)
     print(jsonstring)
@@ -173,13 +183,18 @@ def main():
         if argc == 2:
             print("require push param")
             exit()
-        slpush(slinit(dbpath),argv[2])
+        slpush(slinit(dbpath), argv[2])
     elif p1 == "pop":
         slpop(slinit(dbpath))
     elif p1 == "out":
-        slout(slinit(dbpath),parent + "/out.json")
+        slout(slinit(dbpath), parent + "/out.json")
     elif p1 == "clear":
         slclear(slinit(dbpath))
+    elif p1 == "delete":
+        if argc != 3:
+            print("require param [id]")
+            exit()
+        sldel(slinit(dbpath), argv[2])
     elif p1 == "json":
         if argc == 2:
             print("require param load/write")
