@@ -40,26 +40,46 @@ def touch():
     f.close()
 
 
-def githubapi(github_user=os.environ["GITHUB_USER"],
-              github_token=os.environ["GITHUB_TOKEN"]):
+def githubapi_write(github_user=os.environ["GITHUB_USER"],
+                    github_token=os.environ["GITHUB_TOKEN"]):
     print("GithubAPI")
     print("User:%s,Token:%s" % (github_user, github_token))
-    response = requests.get('https://api.github.com/users/' + github_user + '/repos')
+    response = requests.get('https://api.github.com/users/' + github_user + '/repos?per_page=100')
     pprint.pprint(response.json())
     data = response.json()
     with open(parent + '/RESPONSE_GITHUB', 'w') as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=2)
 
 
-def bitbucketapi(bitbucket_user=os.environ["BITBUCKET_USER"],
-                 bitbucket_pass=os.environ["BITBUCKET_PASS"]):
+def githubapi_load():
+    f = open(parent + '/RESPONSE_GITHUB', 'r')
+    json_data = json.load(f)
+    repo_count = len(json_data)
+    # print("Repository:%s" % repo_count)
+    for i in range(repo_count):
+        print(json_data[i]["name"])
+
+
+def bitbucketapi_write(bitbucket_user=os.environ["BITBUCKET_USER"],
+                       bitbucket_pass=os.environ["BITBUCKET_TOKEN"]):
     print("BitbucketAPI")
     print("User:%s,Pass:%s" % (bitbucket_user, bitbucket_pass))
-    response = requests.get('https://api.bitbucket.org/2.0/repositories/' + bitbucket_user)
+    response = requests.get(
+        'https://api.bitbucket.org/2.0/repositories/' + bitbucket_user,
+        auth=(bitbucket_user,bitbucket_pass))
     pprint.pprint(response.json())
     data = response.json()
     with open(parent + '/RESPONSE_BITBUCKET', 'w') as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=2)
+
+
+def bitbucketapi_load():
+    f = open(parent + '/RESPONSE_BITBUCKET', 'r')
+    json_data = json.load(f)
+    repo_count = len(json_data)
+    print("Repository:%s" % repo_count)
+    # for i in range(repo_count):
+    #     print(json_data[i]["name"])
 
 
 def slinit(dbpath):
@@ -176,9 +196,27 @@ def main():
     elif p1 == "touch":
         touch()
     elif p1 == "githubapi":
-        githubapi()
+        if argc == 2:
+            print("require param load/write")
+            exit()
+        p2 = argv[2]
+        if p2 == "write":
+            githubapi_write()
+        elif p2 == "load":
+            githubapi_load()
+        else:
+            print("UnknownParam:%s" % p2)
     elif p1 == "bitbucketapi":
-        bitbucketapi()
+        if argc == 2:
+            print("require param load/write")
+            exit()
+        p2 = argv[2]
+        if p2 == "write":
+            bitbucketapi_write()
+        elif p2 == "load":
+            bitbucketapi_load()
+        else:
+            print("UnknownParam:%s" % p2)
     elif p1 == "push":
         if argc == 2:
             print("require push param")
