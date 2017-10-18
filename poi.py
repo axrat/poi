@@ -60,26 +60,54 @@ def githubapi_load():
         print(json_data[i]["name"])
 
 
-def bitbucketapi_write(bitbucket_user=os.environ["BITBUCKET_USER"],
-                       bitbucket_pass=os.environ["BITBUCKET_TOKEN"]):
-    print("BitbucketAPI")
-    print("User:%s,Pass:%s" % (bitbucket_user, bitbucket_pass))
-    response = requests.get(
-        'https://api.bitbucket.org/2.0/repositories/' + bitbucket_user,
-        auth=(bitbucket_user,bitbucket_pass))
-    pprint.pprint(response.json())
-    data = response.json()
+def json_print(json):
+    pprint.pprint(json)
+
+
+def bitbucket_request(url, bitbucket_user=os.environ["BITBUCKET_USER"], bitbucket_pass=os.environ["BITBUCKET_TOKEN"]):
+    # print("BitbucketAPI Request User:%s,Pass:%s" % (bitbucket_user, bitbucket_pass))
+    return requests.get(url, auth=(bitbucket_user, bitbucket_pass)).json()
+
+
+def bitbucketapi_repositories():
+    repository_list = []
+    json_data = bitbucket_request('https://api.bitbucket.org/2.0/repositories/' + os.environ["BITBUCKET_USER"])
+    # print(json_data.get("next"))
+    json_data_values = json_data["values"]
+    for i in range(len(json_data_values)):
+        repository_list.append(json_data_values[i]["name"])
+
+    # if not json_data.get("next"):
+    #     return repository_list
+    # bitbucketapi_request(repository_list, json_data.get("next"))
+    # if json_data.get("next"):
+    #     json_data = bitbucket_request(json_data.get("next"))["values"]
+
+
+    # print(repository_list)
+    rootDirct = cl.OrderedDict()
+    for i in range(len(repository_list)):
+        data = cl.OrderedDict()
+        data["directory"] = "None"
+        rootDirct[repository_list[i]] = data
+    fw = open(parent + '/RESPONSE_BITBUCKET', 'w')
+    json.dump(rootDirct, fw, indent=2)
+
+
+def bitbucketapi_write():
+    bitbucket_user = os.environ["BITBUCKET_USER"]
+    json_data = bitbucket_request('https://api.bitbucket.org/2.0/repositories/' + bitbucket_user)
     with open(parent + '/RESPONSE_BITBUCKET', 'w') as f:
-        json.dump(data, f, indent=2)
+        json.dump(json_data, f, indent=2)
 
 
 def bitbucketapi_load():
     f = open(parent + '/RESPONSE_BITBUCKET', 'r')
     json_data = json.load(f)
-    repo_count = len(json_data)
-    print("Repository:%s" % repo_count)
-    # for i in range(repo_count):
-    #     print(json_data[i]["name"])
+    # print(json_data["next"])
+    json_data = json_data["values"]
+    for i in range(len(json_data)):
+        print(json_data[i]["name"])
 
 
 def slinit(dbpath):
@@ -215,6 +243,8 @@ def main():
             bitbucketapi_write()
         elif p2 == "load":
             bitbucketapi_load()
+        elif p2 == "test":
+            bitbucketapi_repositories()
         else:
             print("UnknownParam:%s" % p2)
     elif p1 == "push":
