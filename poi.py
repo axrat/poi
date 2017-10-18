@@ -40,15 +40,46 @@ def touch():
     f.close()
 
 
-def githubapi_write(github_user=os.environ["GITHUB_USER"],
-                    github_token=os.environ["GITHUB_TOKEN"]):
-    print("GithubAPI")
-    print("User:%s,Token:%s" % (github_user, github_token))
-    response = requests.get('https://api.github.com/users/' + github_user + '/repos?per_page=100')
-    pprint.pprint(response.json())
-    data = response.json()
+def githubapi_request(url,github_user=os.environ["GITHUB_USER"],github_token=os.environ["GITHUB_TOKEN"]):
+    print("GithubAPI Request User:%s,Token:%s" % (github_user, github_token))
+    print("RequestUrl:%s" % url)
+    return requests.get(url, auth=(github_user, github_token))
+
+
+def githubapi_repositories(repository_list, next):
+    if next:
+        response = githubapi_request(next)
+        json_data=response.json()
+        for i in range(len(json_data)):
+            repository_list.append(json_data[i]["name"])
+        # print("Next:%s" % response.links["next"]["url"])
+        if response.links.get("next"):
+            return githubapi_repositories(repository_list, response.links["next"]["url"])
+    return repository_list
+
+
+def githubapi_test():
+    repository_list = []
+    repository_list = githubapi_repositories(
+        repository_list,
+        'https://api.github.com/users/' + os.environ["GITHUB_USER"] + '/repos'
+    )
+    print(repository_list)
+    rootDirct = cl.OrderedDict()
+    for i in range(len(repository_list)):
+        data = cl.OrderedDict()
+        data["directory"] = "None"
+        rootDirct[repository_list[i]] = data
+    fw = open(parent + '/RESPONSE_GITHUB', 'w')
+    json.dump(rootDirct, fw, indent=2)
+
+
+def githubapi_write():
+    response = githubapi_request('https://api.github.com/users/' + os.environ["GITHUB_USER"] + '/repos'+'?per_page=100')
+    response = response.json()
+    pprint.pprint(response)
     with open(parent + '/RESPONSE_GITHUB', 'w') as f:
-        json.dump(data, f, indent=2)
+        json.dump(response, f, indent=2)
 
 
 def githubapi_load():
@@ -66,24 +97,27 @@ def json_print(json):
 
 def bitbucket_request(url, bitbucket_user=os.environ["BITBUCKET_USER"], bitbucket_pass=os.environ["BITBUCKET_TOKEN"]):
     # print("BitbucketAPI Request User:%s,Pass:%s" % (bitbucket_user, bitbucket_pass))
+    print("RequestUrl:%s" % url)
     return requests.get(url, auth=(bitbucket_user, bitbucket_pass)).json()
 
 
-def bitbucketapi_repositories():
+def bitbucketapi_repositories(repository_list, next):
+    if next:
+        json_data = bitbucket_request(next)
+        json_data_values = json_data["values"]
+        for i in range(len(json_data_values)):
+            repository_list.append(json_data_values[i]["name"])
+        return bitbucketapi_repositories(repository_list,json_data.get("next"))
+    else:
+        return repository_list
+
+
+def bitbucketapi_test():
     repository_list = []
-    json_data = bitbucket_request('https://api.bitbucket.org/2.0/repositories/' + os.environ["BITBUCKET_USER"])
-    # print(json_data.get("next"))
-    json_data_values = json_data["values"]
-    for i in range(len(json_data_values)):
-        repository_list.append(json_data_values[i]["name"])
-
-    # if not json_data.get("next"):
-    #     return repository_list
-    # bitbucketapi_request(repository_list, json_data.get("next"))
-    # if json_data.get("next"):
-    #     json_data = bitbucket_request(json_data.get("next"))["values"]
-
-
+    repository_list = bitbucketapi_repositories(
+        repository_list,
+        'https://api.bitbucket.org/2.0/repositories/' + os.environ["BITBUCKET_USER"]
+    )
     # print(repository_list)
     rootDirct = cl.OrderedDict()
     for i in range(len(repository_list)):
@@ -232,6 +266,8 @@ def main():
             githubapi_write()
         elif p2 == "load":
             githubapi_load()
+        elif p2 == "test":
+            githubapi_test()
         else:
             print("UnknownParam:%s" % p2)
     elif p1 == "bitbucketapi":
@@ -244,7 +280,7 @@ def main():
         elif p2 == "load":
             bitbucketapi_load()
         elif p2 == "test":
-            bitbucketapi_repositories()
+            bitbucketapi_test()
         else:
             print("UnknownParam:%s" % p2)
     elif p1 == "push":
