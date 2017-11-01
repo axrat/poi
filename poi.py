@@ -12,6 +12,25 @@ import textwrap
 import collections as cl
 from datetime import datetime
 
+#import src.Prism
+#p1 = src.Prism.Prism(10, 20, 30)
+#print(p1.content())
+
+# class MyClass:
+#     """A simple example class"""         # 三重クォートによるコメント
+#     def __init__(self):                  # コンストラクタ
+#         self.name = ""
+#
+#     def getName(self):                   # getName()メソッド
+#         return self.name
+#
+#     def setName(self, name):             # setName()メソッド
+#         self.name = name
+#
+# a = MyClass()                            # クラスのインスタンスを生成
+# a.setName("Tanaka")                      # setName()メソッドをコール
+# print(a.getName())
+
 
 def readme():
     string = textwrap.dedent(
@@ -40,49 +59,139 @@ def touch():
     f.close()
 
 
-def githubapi_request(url,github_user=os.environ["GITHUB_USER"],github_token=os.environ["GITHUB_TOKEN"]):
-    print("GithubAPI Request User:%s,Token:%s" % (github_user, github_token))
-    print("RequestUrl:%s" % url)
-    return requests.get(url, auth=(github_user, github_token))
+def api_request(url, user, token):
+    # print("API Request User:%s,Token:%s" % (user, token))
+    print("Request:%s" % url)
+    return requests.get(url, auth=(user, token))
 
 
-def githubapi_repositories(repository_list, next):
+def github_request(url):
+    return api_request(url, os.environ["GITHUB_USER"], os.environ["GITHUB_TOKEN"])
+
+
+def bitbucket_request(url):
+    return api_request(url, os.environ["BITBUCKET_USER"], os.environ["BITBUCKET_TOKEN"]).json()
+
+
+def json_print(json):
+    pprint.pprint(json)
+
+
+def create_json(list):
+    # print(list)
+    json = cl.OrderedDict()
+    for i in range(len(list)):
+        data = cl.OrderedDict()
+        # data["directory"] = "None"
+        json[list[i]] = data
+    return json
+
+
+def github_repositories(repository_list, next):
     if next:
-        response = githubapi_request(next)
-        json_data=response.json()
+        response = github_request(next)
+        json_data = response.json()
         for i in range(len(json_data)):
             repository_list.append(json_data[i]["name"])
         # print("Next:%s" % response.links["next"]["url"])
         if response.links.get("next"):
-            return githubapi_repositories(repository_list, response.links["next"]["url"])
+            return github_repositories(repository_list, response.links["next"]["url"])
     return repository_list
 
 
-def githubapi_test():
-    repository_list = []
-    repository_list = githubapi_repositories(
-        repository_list,
-        'https://api.github.com/users/' + os.environ["GITHUB_USER"] + '/repos'
-    )
-    print(repository_list)
-    rootDirct = cl.OrderedDict()
-    for i in range(len(repository_list)):
-        data = cl.OrderedDict()
-        data["directory"] = "None"
-        rootDirct[repository_list[i]] = data
+def bitbucket_repositories(repository_list, next):
+    if next:
+        json_data = bitbucket_request(next)
+        json_data_values = json_data["values"]
+        for i in range(len(json_data_values)):
+            repository_list.append(json_data_values[i]["name"])
+        return bitbucket_repositories(repository_list, json_data.get("next"))
+    else:
+        return repository_list
+
+
+def db_list_push(con, sql, list):
+    for i in range(len(list)):
+        c = con.cursor()
+        c.execute(sql, [list[i]])
+        con.commit()
+    print("list push complete")
+
+
+def db_select(con, table):
+    c = con.cursor()
+    for row in c.execute("SELECT * FROM %s" % table):
+        print(row)
+
+
+def db_table_nodata(con, table):
+    c = con.cursor()
+    c.execute("select count(*) from %s" % table)
+    return 0 == c.fetchone()[0]
+
+
+def github_init():
+    con = slinit(dbpath)
+    repository_list = github_repositories([], 'https://api.github.com/users/' + os.environ["GITHUB_USER"] + '/repos')
+    db_list_push(con, "INSERT INTO github (val) VALUES (?)", repository_list)
+    con.close()
+    print("complete")
+
+
+def github_out(repository_list):
     fw = open(parent + '/RESPONSE_GITHUB', 'w')
-    json.dump(rootDirct, fw, indent=2)
+    json.dump(create_json(repository_list), fw, indent=2)
 
 
-def githubapi_write():
-    response = githubapi_request('https://api.github.com/users/' + os.environ["GITHUB_USER"] + '/repos'+'?per_page=100')
+def bitbucket_out(repository_list):
+    fw = open(parent + '/RESPONSE_BITBUCKET', 'w')
+    json.dump(create_json(repository_list), fw, indent=2)
+
+
+def bitbucket_init():
+    con = slinit(dbpath)
+    repository_list = bitbucket_repositories([], 'https://api.bitbucket.org/2.0/repositories/' + os.environ["BITBUCKET_USER"])
+    db_list_push(con, "INSERT INTO bitbucket (val) VALUES (?)", repository_list)
+    con.close()
+    print("complete")
+
+
+def github_select():
+    con = slinit(dbpath)
+    db_select(con, "github")
+    con.close()
+
+
+def bitbucket_select():
+    con = slinit(dbpath)
+    db_select(con, "bitbucket")
+    con.close()
+
+
+def github_test():
+    print("github test")
+    con = slinit(dbpath)
+    if db_table_nodata(con, "github"):
+        print("github table is nodata")
+
+
+def bitbucket_test():
+    print("bitbucket test")
+    con = slinit(dbpath)
+    if db_table_nodata(con, "bitbucket"):
+        print("bitbucket table is nodata")
+
+
+
+def github_write():
+    response = github_request('https://api.github.com/users/' + os.environ["GITHUB_USER"] + '/repos' + '?per_page=100')
     response = response.json()
     pprint.pprint(response)
     with open(parent + '/RESPONSE_GITHUB', 'w') as f:
         json.dump(response, f, indent=2)
 
 
-def githubapi_load():
+def github_load():
     f = open(parent + '/RESPONSE_GITHUB', 'r')
     json_data = json.load(f)
     repo_count = len(json_data)
@@ -91,51 +200,15 @@ def githubapi_load():
         print(json_data[i]["name"])
 
 
-def json_print(json):
-    pprint.pprint(json)
 
-
-def bitbucket_request(url, bitbucket_user=os.environ["BITBUCKET_USER"], bitbucket_pass=os.environ["BITBUCKET_TOKEN"]):
-    # print("BitbucketAPI Request User:%s,Pass:%s" % (bitbucket_user, bitbucket_pass))
-    print("RequestUrl:%s" % url)
-    return requests.get(url, auth=(bitbucket_user, bitbucket_pass)).json()
-
-
-def bitbucketapi_repositories(repository_list, next):
-    if next:
-        json_data = bitbucket_request(next)
-        json_data_values = json_data["values"]
-        for i in range(len(json_data_values)):
-            repository_list.append(json_data_values[i]["name"])
-        return bitbucketapi_repositories(repository_list,json_data.get("next"))
-    else:
-        return repository_list
-
-
-def bitbucketapi_test():
-    repository_list = []
-    repository_list = bitbucketapi_repositories(
-        repository_list,
-        'https://api.bitbucket.org/2.0/repositories/' + os.environ["BITBUCKET_USER"]
-    )
-    # print(repository_list)
-    rootDirct = cl.OrderedDict()
-    for i in range(len(repository_list)):
-        data = cl.OrderedDict()
-        data["directory"] = "None"
-        rootDirct[repository_list[i]] = data
-    fw = open(parent + '/RESPONSE_BITBUCKET', 'w')
-    json.dump(rootDirct, fw, indent=2)
-
-
-def bitbucketapi_write():
+def bitbucket_write():
     bitbucket_user = os.environ["BITBUCKET_USER"]
     json_data = bitbucket_request('https://api.bitbucket.org/2.0/repositories/' + bitbucket_user)
     with open(parent + '/RESPONSE_BITBUCKET', 'w') as f:
         json.dump(json_data, f, indent=2)
 
 
-def bitbucketapi_load():
+def bitbucket_load():
     f = open(parent + '/RESPONSE_BITBUCKET', 'r')
     json_data = json.load(f)
     # print(json_data["next"])
@@ -146,7 +219,9 @@ def bitbucketapi_load():
 
 def slinit(dbpath):
     con = sqlite3.connect(dbpath)
-    initializeTable(con, "stack", "create table stack (id int, val varchar(255))")
+    init_table(con, "github", "CREATE TABLE github (val VARCHAR(255))")
+    init_table(con, "bitbucket", "CREATE TABLE bitbucket (val VARCHAR(255))")
+    init_table(con, "stack", "CREATE TABLE stack (id INT, val VARCHAR(255))")
     return con
 
 
@@ -198,7 +273,7 @@ def slout(con, json_path):
     print("out complete")
 
 
-def initializeTable(con, table, create):
+def init_table(con, table, create):
     cur = con.execute("SELECT * FROM sqlite_master WHERE type='table' and name='%s'" % table)
     if cur.fetchone() is None:
         print("NotFoundTable:%s" % table)
@@ -257,30 +332,38 @@ def main():
         test()
     elif p1 == "touch":
         touch()
-    elif p1 == "githubapi":
+    elif p1 == "github":
         if argc == 2:
             print("require param load/write")
             exit()
         p2 = argv[2]
-        if p2 == "write":
-            githubapi_write()
+        if p2 == "init":
+            github_init()
+        elif p2 == "select":
+            github_select()
+        elif p2 == "write":
+            github_write()
         elif p2 == "load":
-            githubapi_load()
+            github_load()
         elif p2 == "test":
-            githubapi_test()
+            github_test()
         else:
             print("UnknownParam:%s" % p2)
-    elif p1 == "bitbucketapi":
+    elif p1 == "bitbucket":
         if argc == 2:
             print("require param load/write")
             exit()
         p2 = argv[2]
-        if p2 == "write":
-            bitbucketapi_write()
+        if p2 == "init":
+            bitbucket_init()
+        elif p2 == "select":
+            bitbucket_select()
+        elif p2 == "write":
+            bitbucket_write()
         elif p2 == "load":
-            bitbucketapi_load()
+            bitbucket_load()
         elif p2 == "test":
-            bitbucketapi_test()
+            bitbucket_test()
         else:
             print("UnknownParam:%s" % p2)
     elif p1 == "push":
